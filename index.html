@@ -1,6 +1,79 @@
+
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Daddy LUCAS is stupid and dumb</title>
-  </head>
+	<html>
+		<head>
+    		<title>Hey Ground</title>
+		</head>
+		<canvas id="canvas" height="400" width="440"></canvas>
+		<body>
+			<script>
+			var canvas = document.getElementById("canvas");
+			var ctx = canvas.getContext("2d");
+			var x = 20;
+			var y = 0;
+			var won = false;
+			var map = [
+    			"#################### #",
+    			"#          #         #",
+    			"#### ## #### ####### #",
+    			"#     #    #     #   #",
+    			"##### #### ### ##### #",
+    			"#   # #           #  #",
+    			"# ##### ##############",
+    			"#     # #            #",
+    			"### ### ### # ########",
+    			"#   #       # #      #",
+    			"# ######### ### #### #",
+    			"# #         #   #  # #",
+    			"# ### ### ### ### ## #",
+    			"#     # #   # #      #",
+    			"##### # ### # ########",
+    			"#   # #   #   #   ####",
+    			"# # # # #########    #",
+    			"# ###           # ## #",
+    			"#     #########    # #",
+    			"#################### #"
+			];
+
+			function draw() {
+    			for (var i = 0; i < map.length; i++) {
+        			for (var j = 0; j < map[i].length; j++) {
+            			if (map[i][j] == "#") {
+                			ctx.fillStyle = "black";
+            			} else {
+                			ctx.fillStyle = "white";
+            			}
+            			ctx.fillRect(j * 20, i * 20, 20, 20);
+        			}
+    			}
+    			ctx.fillStyle = "red";
+    			ctx.fillRect(x * 20, y * 20, 20, 20);
+			}
+
+		document.addEventListener("keydown", function(e) {
+			    if (won) return;
+			    var nx = x, ny = y;
+			    if (e.keyCode == 37) {
+        			nx--;
+    			} else if (e.keyCode == 39) {
+        				nx++;
+    			} else if (e.keyCode == 38) {
+    				    ny--;
+    			} else if (e.keyCode == 40) {
+    				    ny++;
+    			}
+    			if (map[ny] && map[ny][nx] && map[ny][nx] != "#") {
+    			    x = nx;
+    			    y = ny;
+    			}
+				if (x == 20 && y == map.length - 1){
+					won = true;
+					alert("You Win!");
+				}
+    			draw();
+			});
+
+			draw();
+		</script>
+	</body>
 </html>
