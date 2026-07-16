@@ -1,79 +1,428 @@
-
 <!DOCTYPE html>
-	<html>
-		<head>
-    		<title>Hey Ground</title>
-		</head>
-		<canvas id="canvas" height="400" width="440"></canvas>
-		<body>
-			<script>
-			var canvas = document.getElementById("canvas");
-			var ctx = canvas.getContext("2d");
-			var x = 20;
-			var y = 0;
-			var won = false;
-			var map = [
-    			"#################### #",
-    			"#          #         #",
-    			"#### ## #### ####### #",
-    			"#     #    #     #   #",
-    			"##### #### ### ##### #",
-    			"#   # #           #  #",
-    			"# ##### ##############",
-    			"#     # #            #",
-    			"### ### ### # ########",
-    			"#   #       # #      #",
-    			"# ######### ### #### #",
-    			"# #         #   #  # #",
-    			"# ### ### ### ### ## #",
-    			"#     # #   # #      #",
-    			"##### # ### # ########",
-    			"#   # #   #   #   ####",
-    			"# # # # #########    #",
-    			"# ###           # ## #",
-    			"#     #########    # #",
-    			"#################### #"
-			];
+<html>
+    <head>
+        <title>Hey Ground</title>
+        <style>
+            #container {
+                display: flex;
+                align-items: flex-start;
+            }
+            #canvas {
+                border: 1px solid #333;
+            }
+            .btn {
+                margin-left: 12px;
+                margin-bottom: 8px;
+                padding: 8px 16px;
+                font-size: 14px;
+                cursor: pointer;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                display: block;
+            }
+            #btn-path {
+                background: #4a90d9;
+            }
+            #btn-path:hover {
+                background: #357abd;
+            }
+            #btn-reset {
+                background: #e07b3c;
+            }
+            #btn-reset:hover {
+                background: #c06830;
+            }
+            #mobile-controls {
+                display: none;
+                justify-content: center;
+                margin-top: 12px;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+            #mobile-controls.show {
+                display: flex;
+            }
+            .dpad {
+                display: grid;
+                grid-template-areas:
+                    ". up ."
+                    "left . right"
+                    ". down .";
+                gap: 4px;
+            }
+            .dpad-btn {
+                width: 56px;
+                height: 56px;
+                font-size: 24px;
+                border: none;
+                border-radius: 8px;
+                background: #4a90d9;
+                color: #fff;
+                cursor: pointer;
+                touch-action: manipulation;
+            }
+            .dpad-btn:active {
+                background: #2563a0;
+            }
+            #btn-up    { grid-area: up; }
+            #btn-down  { grid-area: down; }
+            #btn-left  { grid-area: left; }
+            #btn-right { grid-area: right; }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <canvas id="canvas"></canvas>
+            <div>
+                <button id="btn-path" class="btn">查看路线</button>
+                <button id="btn-reset" class="btn">重新生成</button>
+            </div>
+        </div>
+        <div id="mobile-controls">
+            <div class="dpad">
+                <button id="btn-up" class="dpad-btn">▲</button>
+                <button id="btn-left" class="dpad-btn">◄</button>
+                <button id="btn-right" class="dpad-btn">►</button>
+                <button id="btn-down" class="dpad-btn">▼</button>
+            </div>
+        </div>
+        <script>
+            var canvas = document.getElementById("canvas");
+            var ctx = canvas.getContext("2d");
+            var won = false;
+            var showPath = false;
+            var shortestPath = [];
 
-			function draw() {
-    			for (var i = 0; i < map.length; i++) {
-        			for (var j = 0; j < map[i].length; j++) {
-            			if (map[i][j] == "#") {
-                			ctx.fillStyle = "black";
-            			} else {
-                			ctx.fillStyle = "white";
-            			}
-            			ctx.fillRect(j * 20, i * 20, 20, 20);
-        			}
-    			}
-    			ctx.fillStyle = "red";
-    			ctx.fillRect(x * 20, y * 20, 20, 20);
-			}
+            var cellSize = 10;
+            var mazeCols = 30;
+            var mazeRows = 26;
+            var gridRows = 2 * mazeRows + 1;
+            var gridCols = 2 * mazeCols + 1;
 
-		document.addEventListener("keydown", function(e) {
-			    if (won) return;
-			    var nx = x, ny = y;
-			    if (e.keyCode == 37) {
-        			nx--;
-    			} else if (e.keyCode == 39) {
-        				nx++;
-    			} else if (e.keyCode == 38) {
-    				    ny--;
-    			} else if (e.keyCode == 40) {
-    				    ny++;
-    			}
-    			if (map[ny] && map[ny][nx] && map[ny][nx] != "#") {
-    			    x = nx;
-    			    y = ny;
-    			}
-				if (x == 20 && y == map.length - 1){
-					won = true;
-					alert("You Win!");
-				}
-    			draw();
-			});
+            canvas.width = gridCols * cellSize;
+            canvas.height = gridRows * cellSize;
 
-			draw();
-		</script>
-	</body>
+            var startX = 1, startY = 0;
+            var goalX = gridCols - 2, goalY = gridRows - 1;
+
+            var x = startX;
+            var y = startY;
+
+            function generateMaze() {
+                var maze = [];
+                for (var r = 0; r < gridRows; r++) {
+                    maze[r] = [];
+                    for (var c = 0; c < gridCols; c++) {
+                        maze[r][c] = "#";
+                    }
+                }
+
+                var unvisited = [];
+                for (var r = 1; r < gridRows - 1; r += 2) {
+                    for (var c = 1; c < gridCols - 1; c += 2) {
+                        unvisited.push([r, c]);
+                    }
+                }
+
+                function shuffle(arr) {
+                    for (var i = arr.length - 1; i > 0; i--) {
+                        var j = Math.floor(Math.random() * (i + 1));
+                        var tmp = arr[i];
+                        arr[i] = arr[j];
+                        arr[j] = tmp;
+                    }
+                }
+
+                shuffle(unvisited);
+                var first = unvisited.pop();
+                maze[first[0]][first[1]] = " ";
+
+                var dirs = [[-2, 0], [0, 2], [2, 0], [0, -2]];
+                var midDirs = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+
+                for (var u = unvisited.length - 1; u >= 0; u--) {
+                    var cr = unvisited[u][0];
+                    var cc = unvisited[u][1];
+                    if (maze[cr][cc] == " ") continue;
+
+                    var walk = [[cr, cc]];
+                    var wr = cr, wc = cc;
+                    while (true) {
+                        var di = Math.floor(Math.random() * 4);
+                        var nr = wr + dirs[di][0];
+                        var nc = wc + dirs[di][1];
+                        if (nr <= 0 || nr >= gridRows - 1 || nc <= 0 || nc >= gridCols - 1) continue;
+
+                        var found = -1;
+                        for (var k = 0; k < walk.length; k++) {
+                            if (walk[k][0] === nr && walk[k][1] === nc) { found = k; break; }
+                        }
+
+                        if (found >= 0) {
+                            walk = walk.slice(0, found + 1);
+                            wr = nr;
+                            wc = nc;
+                        } else if (maze[nr][nc] == " ") {
+                            walk.push([nr, nc]);
+                            break;
+                        } else {
+                            walk.push([nr, nc]);
+                            wr = nr;
+                            wc = nc;
+                        }
+                    }
+
+                    for (var i = 0; i < walk.length; i++) {
+                        var wr = walk[i][0];
+                        var wc = walk[i][1];
+                        maze[wr][wc] = " ";
+                    }
+                    for (var i = 0; i < walk.length - 1; i++) {
+                        var mr = (walk[i][0] + walk[i + 1][0]) / 2;
+                        var mc = (walk[i][1] + walk[i + 1][1]) / 2;
+                        maze[mr][mc] = " ";
+                    }
+                }
+
+                maze[0][startX] = " ";
+                maze[gridRows - 1][goalX] = " ";
+
+                return maze;
+            }
+
+            var map = generateMaze();
+
+            function findShortestPath() {
+                var moves = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                var visited = [];
+                var parent = [];
+                for (var r = 0; r < gridRows; r++) {
+                    visited[r] = [];
+                    parent[r] = [];
+                    for (var c = 0; c < gridCols; c++) {
+                        visited[r][c] = false;
+                        parent[r][c] = null;
+                    }
+                }
+
+                var queue = [[startX, 0]];
+                visited[0][startX] = true;
+
+                while (queue.length > 0) {
+                    var cur = queue.shift();
+                    var cr = cur[1], cc = cur[0];
+
+                    if (cr === goalY && cc === goalX) {
+                        var path = [];
+                        var pr = cr, pc = cc;
+                        while (pr !== null) {
+                            path.push([pc, pr]);
+                            var pp = parent[pr][pc];
+                            if (pp === null) break;
+                            pc = pp[0];
+                            pr = pp[1];
+                        }
+                        path.reverse();
+                        return path;
+                    }
+
+                    for (var i = 0; i < 4; i++) {
+                        var nr = cr + moves[i][0];
+                        var nc = cc + moves[i][1];
+                        if (nr >= 0 && nr < gridRows && nc >= 0 && nc < gridCols
+                            && map[nr][nc] != "#" && !visited[nr][nc]) {
+                            visited[nr][nc] = true;
+                            parent[nr][nc] = [cc, cr];
+                            queue.push([nc, nr]);
+                        }
+                    }
+                }
+
+                return [];
+            }
+
+            function draw() {
+                for (var i = 0; i < map.length; i++) {
+                    for (var j = 0; j < map[i].length; j++) {
+                        if (map[i][j] == "#") {
+                            ctx.fillStyle = "black";
+                        } else {
+                            ctx.fillStyle = "white";
+                        }
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                    }
+                }
+                if (showPath) {
+                    var ps = cellSize * 0.4;
+                    var po = (cellSize - ps) / 2;
+                    for (var k = 0; k < shortestPath.length; k++) {
+                        var px = shortestPath[k][0];
+                        var py = shortestPath[k][1];
+                        ctx.fillStyle = "rgba(70, 180, 255, 0.7)";
+                        ctx.fillRect(px * cellSize + po, py * cellSize + po, ps, ps);
+                    }
+                }
+                ctx.fillStyle = "red";
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                ctx.fillStyle = "rgba(0, 200, 0, 0.5)";
+                ctx.fillRect(goalX * cellSize, goalY * cellSize, cellSize, cellSize);
+            }
+
+            document.getElementById("btn-reset").addEventListener("click", function() {
+                clearInterval(moveTimer);
+                moveTimer = null;
+                keys = {};
+                won = false;
+                x = startX;
+                y = startY;
+                showPath = false;
+                shortestPath = [];
+                document.getElementById("btn-path").textContent = "查看路线";
+                map = generateMaze();
+                draw();
+            });
+
+            document.getElementById("btn-path").addEventListener("click", function() {
+                showPath = !showPath;
+                if (showPath) {
+                    shortestPath = findShortestPath();
+                    this.textContent = "隐藏路线";
+                } else {
+                    shortestPath = [];
+                    this.textContent = "查看路线";
+                }
+                draw();
+            });
+
+            var keys = {};
+            var moveTimer = null;
+            var curSpeed = 40;
+
+            function countPaths(px, py) {
+                var count = 0;
+                if (map[py - 1] && map[py - 1][px] && map[py - 1][px] != "#") count++;
+                if (map[py + 1] && map[py + 1][px] && map[py + 1][px] != "#") count++;
+                if (map[py] && map[py][px - 1] && map[py][px - 1] != "#") count++;
+                if (map[py] && map[py][px + 1] && map[py][px + 1] != "#") count++;
+                return count;
+            }
+
+            function restartTimer() {
+                if (moveTimer) clearInterval(moveTimer);
+                var paths = countPaths(x, y);
+                var newSpeed = paths >= 3 ? 150 : 40;
+                if (newSpeed !== curSpeed) {
+                    curSpeed = newSpeed;
+                }
+                moveTimer = setInterval(doMove, curSpeed);
+            }
+
+            function doMove() {
+                if (won) return;
+                var nx = x, ny = y;
+                if (keys[37] || keys[65]) nx--;
+                else if (keys[39] || keys[68]) nx++;
+                else if (keys[38] || keys[87]) ny--;
+                else if (keys[40] || keys[83]) ny++;
+                else return;
+
+                if (map[ny] && map[ny][nx] && map[ny][nx] != "#") {
+                    x = nx;
+                    y = ny;
+                    restartTimer();
+                }
+                if (x == goalX && y == goalY) {
+                    won = true;
+                    clearInterval(moveTimer);
+                    moveTimer = null;
+                    alert("You Win!");
+                }
+                draw();
+            }
+
+            document.addEventListener("keydown", function(e) {
+                if (won) return;
+                var kc = e.keyCode;
+                if (kc == 37 || kc == 38 || kc == 39 || kc == 40
+                    || kc == 65 || kc == 87 || kc == 68 || kc == 83) {
+                    e.preventDefault();
+                    keys[e.keyCode] = true;
+                    if (!moveTimer) {
+                        curSpeed = countPaths(x, y) >= 3 ? 150 : 40;
+                        moveTimer = setInterval(doMove, curSpeed);
+                        doMove();
+                    }
+                }
+            });
+
+            document.addEventListener("keyup", function(e) {
+                keys[e.keyCode] = false;
+                var active = keys[37] || keys[38] || keys[39] || keys[40]
+                    || keys[65] || keys[87] || keys[68] || keys[83];
+                if (!active) {
+                    clearInterval(moveTimer);
+                    moveTimer = null;
+                }
+            });
+
+            var isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+                || ('ontouchstart' in window && window.innerWidth < 768);
+            if (isMobile) {
+                document.getElementById("mobile-controls").classList.add("show");
+            }
+
+            function bindMobileBtn(id, keyCode) {
+                var btn = document.getElementById(id);
+                if (!btn) return;
+                btn.addEventListener("touchstart", function(e) {
+                    e.preventDefault();
+                    if (won) return;
+                    keys[keyCode] = true;
+                    if (!moveTimer) {
+                        curSpeed = countPaths(x, y) >= 3 ? 150 : 40;
+                        moveTimer = setInterval(doMove, curSpeed);
+                        doMove();
+                    }
+                });
+                btn.addEventListener("touchend", function(e) {
+                    e.preventDefault();
+                    keys[keyCode] = false;
+                    var active = keys[37] || keys[38] || keys[39] || keys[40]
+                        || keys[65] || keys[87] || keys[68] || keys[83];
+                    if (!active) {
+                        clearInterval(moveTimer);
+                        moveTimer = null;
+                    }
+                });
+                btn.addEventListener("mousedown", function(e) {
+                    e.preventDefault();
+                    if (won) return;
+                    keys[keyCode] = true;
+                    if (!moveTimer) {
+                        curSpeed = countPaths(x, y) >= 3 ? 150 : 40;
+                        moveTimer = setInterval(doMove, curSpeed);
+                        doMove();
+                    }
+                });
+                btn.addEventListener("mouseup", function(e) {
+                    e.preventDefault();
+                    keys[keyCode] = false;
+                    var active = keys[37] || keys[38] || keys[39] || keys[40]
+                        || keys[65] || keys[87] || keys[68] || keys[83];
+                    if (!active) {
+                        clearInterval(moveTimer);
+                        moveTimer = null;
+                    }
+                });
+            }
+
+            bindMobileBtn("btn-up", 38);
+            bindMobileBtn("btn-down", 40);
+            bindMobileBtn("btn-left", 37);
+            bindMobileBtn("btn-right", 39);
+
+            draw();
+        </script>
+    </body>
 </html>
