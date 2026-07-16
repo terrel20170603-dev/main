@@ -7,8 +7,18 @@
                 display: flex;
                 align-items: flex-start;
             }
-            #canvas {
+            #canvas-wrapper {
+                overflow: auto;
+                max-width: 80vw;
+                max-height: 75vh;
                 border: 1px solid #333;
+                cursor: grab;
+            }
+            #canvas-wrapper:active {
+                cursor: grabbing;
+            }
+            #canvas {
+                display: block;
             }
             .btn {
                 margin-left: 12px;
@@ -32,6 +42,50 @@
             }
             #btn-reset:hover {
                 background: #c06830;
+            }
+            .difficulty-bar {
+                margin-left: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            .diff-btn {
+                padding: 4px 10px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                background: #777;
+            }
+            .diff-btn.active {
+                background: #2ca84e;
+            }
+            .diff-btn.locked {
+                background: #444;
+                opacity: 0.35;
+                cursor: not-allowed;
+            }
+            .diff-btn:hover {
+                opacity: 0.8;
+            }
+            .diff-btn.locked:hover {
+                opacity: 0.35;
+            }
+            #btn-unlock {
+                background: #c0392b;
+                margin-left: 12px;
+                margin-bottom: 4px;
+                padding: 5px 12px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                display: block;
+            }
+            #btn-unlock:hover {
+                background: #a93226;
             }
             #mobile-controls {
                 display: none;
@@ -69,16 +123,166 @@
             #btn-down  { grid-area: down; }
             #btn-left  { grid-area: left; }
             #btn-right { grid-area: right; }
+            #toast {
+                position: fixed;
+                left: 16px;
+                bottom: 20px;
+                background: rgba(0, 0, 0, 0.82);
+                color: #fff;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-size: 14px;
+                opacity: 0;
+                transform: translateY(20px);
+                transition: all 0.35s ease;
+                pointer-events: none;
+                z-index: 999;
+            }
+            #toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            #timer {
+                margin-left: 12px;
+                margin-bottom: 8px;
+                font-size: 22px;
+                font-weight: bold;
+                color: #eee;
+                font-family: monospace;
+                background: #222;
+                padding: 6px 14px;
+                border-radius: 4px;
+                display: inline-block;
+                min-width: 80px;
+                text-align: center;
+            }
+            #timer.warning {
+                color: #ff6b6b;
+            }
+            .time-btn {
+                margin-left: 4px;
+                margin-bottom: 8px;
+                padding: 4px 10px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                vertical-align: middle;
+            }
+            #btn-harder { background: #c0392b; }
+            #btn-harder:hover { background: #a93226; }
+            #btn-easier { background: #27ae60; }
+            #btn-easier:hover { background: #1e8449; }
+            #time-change-row {
+                display: none;
+                margin-left: 12px;
+                margin-bottom: 8px;
+                align-items: center;
+                gap: 4px;
+            }
+            #time-change-row.show { display: inline-flex; }
+            #time-change-input {
+                width: 60px;
+                padding: 3px 6px;
+                font-size: 13px;
+                border: 1px solid #555;
+                border-radius: 3px;
+                background: #333;
+                color: #eee;
+                text-align: center;
+            }
+            #btn-time-change {
+                padding: 3px 8px;
+                font-size: 12px;
+                cursor: pointer;
+                color: #fff;
+                background: #4a90d9;
+                border: none;
+                border-radius: 3px;
+            }
+            #btn-time-change:hover { background: #357abd; }
+            .time-row {
+                margin-left: 12px;
+                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            #score {
+                margin-left: 12px;
+                margin-bottom: 8px;
+                font-size: 18px;
+                font-weight: bold;
+                color: #f1c40f;
+                font-family: monospace;
+                background: #222;
+                padding: 5px 12px;
+                border-radius: 4px;
+                display: inline-block;
+            }
+            .ol-btn {
+                padding: 8px 20px;
+                font-size: 15px;
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+            .ol-btn-retry { background: #e07b3c; }
+            .ol-btn-retry:hover { background: #c06830; }
+            .ol-btn-ok { background: #4a90d9; }
+            .ol-btn-ok:hover { background: #357abd; }
         </style>
     </head>
     <body>
         <div id="container">
-            <canvas id="canvas"></canvas>
+            <div id="canvas-wrapper">
+                <canvas id="canvas"></canvas>
+            </div>
             <div>
                 <button id="btn-path" class="btn">查看路线</button>
                 <button id="btn-reset" class="btn">重新生成</button>
+                <button id="btn-unlock">解锁所有级别</button>
+                <div class="time-row">
+                    <div id="timer">∞</div>
+                    <button id="btn-harder" class="time-btn">太难了</button>
+                    <button id="btn-easier" class="time-btn">简单</button>
+                </div>
+                <div id="time-change-row">
+                    <input id="time-change-input" type="number" placeholder="秒">
+                    <button id="btn-time-change">改变</button>
+                </div>
+                <div id="score">0 分</div>
+                <div class="difficulty-bar">
+                    <button id="diff-beginner" class="diff-btn active">入门</button>
+                    <button id="diff-easy" class="diff-btn">简单</button>
+                    <button id="diff-starter" class="diff-btn">初级</button>
+                    <button id="diff-middle" class="diff-btn">中级</button>
+                    <button id="diff-advanced" class="diff-btn">高级</button>
+                    <button id="diff-normal" class="diff-btn">普通</button>
+                    <button id="diff-skilled" class="diff-btn">熟练</button>
+                    <button id="diff-hard" class="diff-btn">困难</button>
+                    <button id="diff-expert" class="diff-btn">高手</button>
+                    <button id="diff-master" class="diff-btn">大师</button>
+                    <button id="diff-nightmare" class="diff-btn">噩梦</button>
+                    <button id="diff-insane" class="diff-btn">地狱</button>
+                    <button id="diff-abyss" class="diff-btn">深渊</button>
+                    <button id="diff-purgatory" class="diff-btn">炼狱</button>
+                    <button id="diff-myth" class="diff-btn">神话</button>
+                    <button id="diff-mega" class="diff-btn">超级</button>
+                    <button id="diff-titan" class="diff-btn">泰坦</button>
+                    <button id="diff-giant" class="diff-btn">巨人</button>
+                    <button id="diff-leviathan" class="diff-btn">利维坦</button>
+                    <button id="diff-omega" class="diff-btn">终焉</button>
+                    <button id="diff-colossus" class="diff-btn">巨神</button>
+                    <button id="diff-god" class="diff-btn">神级</button>
+                </div>
+            </div>
             </div>
         </div>
+        <div id="toast"></div>
         <div id="mobile-controls">
             <div class="dpad">
                 <button id="btn-up" class="dpad-btn">▲</button>
@@ -94,11 +298,133 @@
             var showPath = false;
             var shortestPath = [];
 
-            var cellSize = 10;
-            var mazeCols = 30;
-            var mazeRows = 26;
+            var difficulties = {
+                beginner:  { cols: 6,   rows: 4,   cell: 20 },
+                easy:      { cols: 10,  rows: 8,   cell: 18 },
+                starter:   { cols: 14,  rows: 11,  cell: 16 },
+                middle:    { cols: 18,  rows: 15,  cell: 13 },
+                advanced:  { cols: 22,  rows: 19,  cell: 11 },
+                normal:    { cols: 26,  rows: 22,  cell: 10 },
+                skilled:   { cols: 30,  rows: 26,  cell: 9 },
+                hard:      { cols: 34,  rows: 29,  cell: 8 },
+                expert:    { cols: 38,  rows: 33,  cell: 7 },
+                master:    { cols: 42,  rows: 36,  cell: 7 },
+                nightmare: { cols: 46,  rows: 40,  cell: 6 },
+                insane:    { cols: 50,  rows: 43,  cell: 6 },
+                abyss:     { cols: 54,  rows: 46,  cell: 6 },
+                purgatory: { cols: 58,  rows: 50,  cell: 5 },
+                myth:      { cols: 62,  rows: 53,  cell: 5 },
+                mega:      { cols: 70,  rows: 60,  cell: 4 },
+                titan:     { cols: 80,  rows: 70,  cell: 3 },
+                giant:     { cols: 92,  rows: 82,  cell: 3 },
+                leviathan: { cols: 105, rows: 95,  cell: 3 },
+                omega:     { cols: 118, rows: 108, cell: 2 },
+                colossus:  { cols: 128, rows: 132, cell: 2 },
+                god:       { cols: 128, rows: 146, cell: 2 }
+            };
+
+            var diffKeys = Object.keys(difficulties);
+            var unlocked = {};
+            var allUnlocked = false;
+            var savedUnlocked = null;
+
+            // Load from localStorage
+            var saved = localStorage.getItem("maze-unlocked");
+            if (saved) {
+                try { unlocked = JSON.parse(saved); } catch(e) {}
+            }
+            // Ensure beginner is always unlocked
+            unlocked.beginner = true;
+            // Check if all levels already unlocked
+            var allDone = true;
+            for (var d = 0; d < diffKeys.length; d++) {
+                if (!unlocked[diffKeys[d]]) { allDone = false; break; }
+            }
+            if (allDone) allUnlocked = true;
+
+            function saveUnlocked() {
+                localStorage.setItem("maze-unlocked", JSON.stringify(unlocked));
+            }
+
+            function unlockLevel(name) {
+                if (!unlocked[name]) {
+                    unlocked[name] = true;
+                    saveUnlocked();
+                    updateDifficultyUI();
+                }
+            }
+
+            function unlockAll() {
+                savedUnlocked = {};
+                for (var k in unlocked) {
+                    if (unlocked.hasOwnProperty(k)) savedUnlocked[k] = unlocked[k];
+                }
+                allUnlocked = true;
+                for (var d = 0; d < diffKeys.length; d++) {
+                    unlocked[diffKeys[d]] = true;
+                }
+                saveUnlocked();
+                updateDifficultyUI();
+                document.getElementById("btn-unlock").textContent = "撤回";
+            }
+
+            function undoUnlockAll() {
+                allUnlocked = false;
+                unlocked = savedUnlocked || {};
+                unlocked.beginner = true;
+                savedUnlocked = null;
+                saveUnlocked();
+                updateDifficultyUI();
+                document.getElementById("btn-unlock").textContent = "解锁所有级别";
+            }
+
+            function isUnlocked(name) {
+                return allUnlocked || !!unlocked[name];
+            }
+
+            function getNextDiff(name) {
+                var idx = diffKeys.indexOf(name);
+                if (idx >= 0 && idx < diffKeys.length - 1) {
+                    return diffKeys[idx + 1];
+                }
+                return null;
+            }
+
+            function updateDifficultyUI() {
+                for (var d = 0; d < diffKeys.length; d++) {
+                    var btn = document.getElementById("diff-" + diffKeys[d]);
+                    if (isUnlocked(diffKeys[d])) {
+                        btn.classList.remove("locked");
+                    } else {
+                        btn.classList.add("locked");
+                    }
+                }
+            }
+
+            var currentDiff = "beginner";
+            var baseCellSize = difficulties[currentDiff].cell;
+            var zoom = 1;
+            var cellSize = baseCellSize * zoom;
+            var mazeCols = difficulties[currentDiff].cols;
+            var mazeRows = difficulties[currentDiff].rows;
             var gridRows = 2 * mazeRows + 1;
             var gridCols = 2 * mazeCols + 1;
+
+            function applyZoom() {
+                var wrapper = document.getElementById("canvas-wrapper");
+                var playerPX = x * cellSize + cellSize / 2;
+                var playerPY = y * cellSize + cellSize / 2;
+                var viewX = playerPX - wrapper.scrollLeft;
+                var viewY = playerPY - wrapper.scrollTop;
+                cellSize = Math.max(1, Math.floor(baseCellSize * zoom));
+                canvas.width = gridCols * cellSize;
+                canvas.height = gridRows * cellSize;
+                draw();
+                var newPX = x * cellSize + cellSize / 2;
+                var newPY = y * cellSize + cellSize / 2;
+                wrapper.scrollLeft = newPX - viewX;
+                wrapper.scrollTop = newPY - viewY;
+            }
 
             canvas.width = gridCols * cellSize;
             canvas.height = gridRows * cellSize;
@@ -269,23 +595,75 @@
                 ctx.fillRect(goalX * cellSize, goalY * cellSize, cellSize, cellSize);
             }
 
-            document.getElementById("btn-reset").addEventListener("click", function() {
+            function resetGame() {
                 clearInterval(moveTimer);
                 moveTimer = null;
+                stopCountdown();
                 keys = {};
                 won = false;
                 x = startX;
                 y = startY;
                 showPath = false;
                 shortestPath = [];
+                usedPathHint = false;
+                usedHarder = false;
+                timeLimit = getTimeLimit();
+                timeLeft = timeLimit;
+                updateTimerDisplay();
                 document.getElementById("btn-path").textContent = "查看路线";
                 map = generateMaze();
                 draw();
+            }
+
+            function changeDifficulty(diff) {
+                if (currentDiff === diff) return;
+                if (!isUnlocked(diff)) return;
+                customTime = 0;
+                currentDiff = diff;
+                baseCellSize = difficulties[diff].cell;
+                zoom = 1;
+                cellSize = baseCellSize;
+                mazeCols = difficulties[diff].cols;
+                mazeRows = difficulties[diff].rows;
+                gridRows = 2 * mazeRows + 1;
+                gridCols = 2 * mazeCols + 1;
+                canvas.width = gridCols * cellSize;
+                canvas.height = gridRows * cellSize;
+                startX = 1;
+                startY = 0;
+                goalX = gridCols - 2;
+                goalY = gridRows - 1;
+                document.querySelectorAll(".diff-btn").forEach(function(b) {
+                    b.classList.remove("active");
+                });
+                document.getElementById("diff-" + diff).classList.add("active");
+                resetGame();
+            }
+
+            document.getElementById("btn-reset").addEventListener("click", function() {
+                resetGame();
+            });
+
+            for (var d = 0; d < diffKeys.length; d++) {
+                (function(diff) {
+                    document.getElementById("diff-" + diff).addEventListener("click", function() {
+                        changeDifficulty(diff);
+                    });
+                })(diffKeys[d]);
+            }
+
+            document.getElementById("btn-unlock").addEventListener("click", function() {
+                if (allUnlocked) {
+                    undoUnlockAll();
+                } else {
+                    unlockAll();
+                }
             });
 
             document.getElementById("btn-path").addEventListener("click", function() {
                 showPath = !showPath;
                 if (showPath) {
+                    usedPathHint = true;
                     shortestPath = findShortestPath();
                     this.textContent = "隐藏路线";
                 } else {
@@ -298,6 +676,138 @@
             var keys = {};
             var moveTimer = null;
             var curSpeed = 40;
+            var toastTimer = null;
+
+            function showToast(msg) {
+                var t = document.getElementById("toast");
+                t.textContent = msg;
+                t.classList.add("show");
+                if (toastTimer) clearTimeout(toastTimer);
+                toastTimer = setTimeout(function() {
+                    t.classList.remove("show");
+                }, 2500);
+            }
+
+            var timeLimit = 0;
+            var timeLeft = 0;
+            var countdownTimer = null;
+            var customTime = 0; // 0 means use formula
+            var changeMode = null; // "harder" or "easier"
+
+            var totalScore = 0;
+            var usedPathHint = false;
+            var usedHarder = false;
+
+            (function() {
+                var saved = localStorage.getItem("maze-score");
+                if (saved) { totalScore = parseInt(saved, 10) || 0; }
+                updateScoreDisplay();
+            })();
+
+            function updateScoreDisplay() {
+                document.getElementById("score").textContent = totalScore + " 分";
+            }
+
+            function saveScore() {
+                localStorage.setItem("maze-score", totalScore.toString());
+                updateScoreDisplay();
+            }
+
+            function addScore(pts) {
+                totalScore += pts;
+                saveScore();
+            }
+
+            function getOrigTime() {
+                return Math.max(45, Math.ceil(Math.sqrt(mazeCols * mazeRows) * 8));
+            }
+
+            function calcDifficultyScore() {
+                var idx = diffKeys.indexOf(currentDiff);
+                return (idx + 1) * 10;
+            }
+
+            function showOverlay(msg, scoreText) {
+                var overlay = document.getElementById("overlay");
+                if (!overlay) {
+                    overlay = document.createElement("div");
+                    overlay.id = "overlay";
+                    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;";
+                    overlay.addEventListener("click", function(e) {
+                        if (e.target === overlay) {
+                            overlay.style.display = "none";
+                        }
+                    });
+                    document.body.appendChild(overlay);
+                }
+                var inner = document.createElement("div");
+                inner.style.cssText = "background:#1a1a2e;color:#eee;padding:30px 40px;border-radius:12px;text-align:center;font-size:18px;max-width:360px;";
+                inner.innerHTML = "<div style='font-size:28px;font-weight:bold;margin-bottom:12px;'>" + msg + "</div>"
+                    + (scoreText ? "<div style='color:#f1c40f;margin-bottom:8px;'>" + scoreText + "</div>" : "")
+                    + "<div style='margin-bottom:6px;color:#aaa;'>总分: " + totalScore + " 分</div>"
+                    + "<div style='margin-top:12px;display:flex;gap:8px;justify-content:center;'>"
+                    + "<button class='ol-btn ol-btn-retry'>重来</button>"
+                    + "<button class='ol-btn ol-btn-ok'>确定</button>"
+                    + "</div>";
+                overlay.innerHTML = "";
+                overlay.appendChild(inner);
+                overlay.style.display = "flex";
+                inner.querySelector(".ol-btn-retry").addEventListener("click", function() {
+                    overlay.style.display = "none";
+                    resetGame();
+                });
+                inner.querySelector(".ol-btn-ok").addEventListener("click", function() {
+                    overlay.style.display = "none";
+                });
+            }
+
+            function getTimeLimit() {
+                return customTime > 0 ? customTime : Math.max(45, Math.ceil(Math.sqrt(mazeCols * mazeRows) * 8));
+            }
+
+            function formatTime(sec) {
+                var m = Math.floor(sec / 60);
+                var s = sec % 60;
+                return m + ":" + (s < 10 ? "0" : "") + s;
+            }
+
+            function updateTimerDisplay() {
+                var el = document.getElementById("timer");
+                el.textContent = formatTime(timeLeft);
+                if (timeLeft <= 15) {
+                    el.classList.add("warning");
+                } else {
+                    el.classList.remove("warning");
+                }
+            }
+
+            function stopCountdown() {
+                if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                }
+                document.getElementById("timer").style.borderLeft = "3px solid transparent";
+            }
+
+            function startCountdown() {
+                if (countdownTimer) return;
+                if (timeLeft <= 0) return;
+                var el = document.getElementById("timer");
+                el.style.borderLeft = "3px solid #4a90d9";
+                function tick() {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    if (timeLeft <= 0) {
+                        stopCountdown();
+                        clearInterval(moveTimer);
+                        moveTimer = null;
+                        won = true;
+                        draw();
+                        showOverlay("You Lose!");
+                    }
+                }
+                countdownTimer = setInterval(tick, 1000);
+            }
 
             function countPaths(px, py) {
                 var count = 0;
@@ -336,7 +846,24 @@
                     won = true;
                     clearInterval(moveTimer);
                     moveTimer = null;
-                    alert("You Win!");
+                    stopCountdown();
+                    var next = getNextDiff(currentDiff);
+                    var msg = "You Win!";
+                    var scoreText = "";
+                    if (!usedPathHint && !usedHarder) {
+                        var pts = calcDifficultyScore();
+                        if (customTime > 0 && customTime < getOrigTime()) {
+                            pts *= 2;
+                        }
+                        addScore(pts);
+                        scoreText = "+" + pts + " 分";
+                    }
+                    if (next && !isUnlocked(next)) {
+                        unlockLevel(next);
+                        showOverlay(msg, scoreText + (scoreText ? " | " : "") + "已解锁: " + document.getElementById("diff-" + next).textContent);
+                    } else {
+                        showOverlay(msg, scoreText);
+                    }
                 }
                 draw();
             }
@@ -347,6 +874,7 @@
                 if (kc == 37 || kc == 38 || kc == 39 || kc == 40
                     || kc == 65 || kc == 87 || kc == 68 || kc == 83) {
                     e.preventDefault();
+                    startCountdown();
                     keys[e.keyCode] = true;
                     if (!moveTimer) {
                         curSpeed = countPaths(x, y) >= 3 ? 150 : 40;
@@ -378,6 +906,7 @@
                 btn.addEventListener("touchstart", function(e) {
                     e.preventDefault();
                     if (won) return;
+                    startCountdown();
                     keys[keyCode] = true;
                     if (!moveTimer) {
                         curSpeed = countPaths(x, y) >= 3 ? 150 : 40;
@@ -398,6 +927,7 @@
                 btn.addEventListener("mousedown", function(e) {
                     e.preventDefault();
                     if (won) return;
+                    startCountdown();
                     keys[keyCode] = true;
                     if (!moveTimer) {
                         curSpeed = countPaths(x, y) >= 3 ? 150 : 40;
@@ -422,6 +952,62 @@
             bindMobileBtn("btn-left", 37);
             bindMobileBtn("btn-right", 39);
 
+            canvas.addEventListener("wheel", function(e) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    zoom = Math.min(5, zoom * 1.2);
+                } else {
+                    zoom = Math.max(0.2, zoom / 1.2);
+                }
+                applyZoom();
+            }, { passive: false });
+
+            function showTimeChange(mode) {
+                var defaultTime = getTimeLimit();
+                changeMode = mode;
+                document.getElementById("time-change-input").value = defaultTime;
+                document.getElementById("time-change-row").classList.add("show");
+                document.getElementById("time-change-input").focus();
+            }
+
+            document.getElementById("btn-harder").addEventListener("click", function() {
+                showTimeChange("harder");
+            });
+
+            document.getElementById("btn-easier").addEventListener("click", function() {
+                showTimeChange("easier");
+            });
+
+            document.getElementById("btn-time-change").addEventListener("click", function() {
+                var val = parseInt(document.getElementById("time-change-input").value, 10);
+                if (isNaN(val) || val <= 0) {
+                    showToast("Invalid time!");
+                    return;
+                }
+                var origTime = Math.max(45, Math.ceil(Math.sqrt(mazeCols * mazeRows) * 8));
+                if (changeMode === "harder" && val <= origTime) {
+                    showToast("Invalid time!");
+                    return;
+                }
+                if (changeMode === "easier" && val >= origTime) {
+                    showToast("Invalid time!");
+                    return;
+                }
+                customTime = val;
+                timeLimit = val;
+                timeLeft = val;
+                if (changeMode === "harder") usedHarder = true;
+                stopCountdown();
+                updateTimerDisplay();
+                document.getElementById("time-change-row").classList.remove("show");
+                showToast("时间已更改！");
+                resetGame();
+            });
+
+            updateDifficultyUI();
+            timeLimit = getTimeLimit();
+            timeLeft = timeLimit;
+            updateTimerDisplay();
             draw();
         </script>
     </body>
